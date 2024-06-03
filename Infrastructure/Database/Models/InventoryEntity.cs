@@ -2,7 +2,11 @@
 
 namespace Infrastructure.Database.Models;
 
-public class InventoryEntity: DbEntity<Guid>
+public sealed class InventoryEntity : DbEntity<Guid>
 {
-    public required string Name { get; set; }
+    public required Guid ProductId { get; set; }
+    public ProductEntity Product { get; set; } = null!;
+    public required int Quantity { get; set; }
+
+    public IEnumerable<InventoryTransactionEntity> Transactions { get; set; } = new List<InventoryTransactionEntity>();
 }

@@ -2,8 +2,9 @@
 
 namespace Infrastructure.Database.Models;
 
-public class ProductEntity: DbEntity<Guid>
+public sealed class ProductEntity : DbEntity<Guid>
 {
     public required string Name { get; set; }
     public CategoryEntity Category { get; set; }
+    public InventoryEntity Inventory { get; set; }
 }

@@ -2,7 +2,7 @@
 
 namespace Infrastructure.Database.Models;
 
-public class CategoryEntity: DbEntity<int>
+public sealed class CategoryEntity : DbEntity<int>
 {
     public required string Name { get; set; }
 }

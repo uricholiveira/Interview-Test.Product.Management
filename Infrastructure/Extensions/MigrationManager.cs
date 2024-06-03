@@ -8,19 +8,20 @@ public static class MigrationManager
 {
     public static IHost MigrateDatabase<T>(this IHost host) where T : DbContext, IDisposable
     {
-        using (IServiceScope scope = host.Services.CreateScope())
+        using (var scope = host.Services.CreateScope())
         {
-            T requiredService = scope.ServiceProvider.GetRequiredService<T>();
+            var requiredService = scope.ServiceProvider.GetRequiredService<T>();
             try
             {
                 requiredService.Database.Migrate();
             }
             finally
             {
-                if ((object) requiredService != null)
-                    ((IDisposable) requiredService).Dispose();
+                if (requiredService != null)
+                    ((IDisposable)requiredService).Dispose();
             }
         }
+
         return host;
     }
 }

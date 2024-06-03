@@ -1,4 +1,3 @@
-
 using Infrastructure.Abstracts;
 using Infrastructure.Database.Configs;
 using Infrastructure.Database.Models;
@@ -15,6 +14,7 @@ public class DatabaseContext : DbContext
     public DbSet<ProductEntity> Products { get; set; }
     public DbSet<CategoryEntity> Categories { get; set; }
     public DbSet<InventoryEntity> Inventories { get; set; }
+    public DbSet<InventoryTransactionEntity> InventoryTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

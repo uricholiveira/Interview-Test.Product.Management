@@ -1,5 +1,6 @@
-﻿using Business.Interfaces;
-using Domain.Dtos;
+﻿using AutoMapper;
+using Business.Interfaces;
+using Domain.Models;
 using Infrastructure.Database;
 using Infrastructure.Database.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,77 +10,101 @@ namespace Business.Services;
 
 public class ProductService : IProductService
 {
-    private readonly ILogger<ProductService> _logger;
     private readonly DatabaseContext _databaseContext;
+    private readonly ILogger<ProductService> _logger;
+    private readonly IMapper _mapper;
 
-    public ProductService(ILogger<ProductService> logger, DatabaseContext databaseContext)
+    public ProductService(ILogger<ProductService> logger, IMapper mapper, DatabaseContext databaseContext)
     {
         _logger = logger;
         _databaseContext = databaseContext;
+        _mapper = mapper;
     }
 
-    public async Task<ProductDto?> Get(Guid id, CancellationToken cancellationToken)
+    public async Task<ProductDto> Get(Guid id, CancellationToken cancellationToken)
     {
         var productEntity = await _databaseContext.Products.FindAsync([id], cancellationToken);
-        if (productEntity == null)
+        if (productEntity != null) return _mapper.Map<ProductDto>(productEntity);
+
+        _logger.LogInformation($"Product with id {id} not found");
+        throw new Exception("Product not found");
+    }
+
+    public async Task<IEnumerable<ProductDto?>> Get(ProductFilterDto data, CancellationToken cancellationToken)
+    {
+        var query = _databaseContext.Products.AsQueryable();
+
+        if (!string.IsNullOrEmpty(data.Name)) query = query.Where(p => p.Name.Contains(data.Name));
+
+        var productEntities = await query.ToListAsync(cancellationToken);
+        return _mapper.Map<IEnumerable<ProductDto>>(productEntities);
+    }
+
+    public async Task<ProductDto> Create(CreateProductDto data, CancellationToken cancellationToken)
+    {
+        var category =
+            await _databaseContext.Categories.FirstOrDefaultAsync(x => x.Id == data.CategoryId, cancellationToken);
+
+        if (category is null)
         {
-            _logger.LogInformation($"Product with id {id} not found");
-            return null;
+            _logger.LogInformation($"Category with id {data.CategoryId} not found");
+            throw new Exception("Category not found");
         }
 
-        var productDto = new ProductDto { Id = productEntity.Id, Name = productEntity.Name };
-
-        return productDto;
-    }
-
-    public async Task<IEnumerable<ProductDto?>> Get(CancellationToken cancellationToken)
-    {
-        var productEntities = await _databaseContext.Products.ToListAsync(cancellationToken);
-        var productDtos = 
-            productEntities.Select(entity => new ProductDto { Id = entity.Id, Name = entity.Name });
-
-        return productDtos;
-    }
-
-    public async Task<ProductDto?> Create(ProductDto data, CancellationToken cancellationToken)
-    {
-        var productEntity = new ProductEntity { Id = data.Id, Name = data.Name };
+        var productEntity = new ProductEntity
+        {
+            Id = Guid.NewGuid(),
+            Name = data.Name,
+            Category = category,
+            Inventory = new InventoryEntity
+            {
+                Quantity = 0,
+                ProductId = default,
+                Id = default
+            }
+        };
         _databaseContext.Products.Add(productEntity);
         await _databaseContext.SaveChangesAsync(cancellationToken);
 
-        var productDto = new ProductDto { Id = productEntity.Id, Name = productEntity.Name };
-        return productDto;
+        return _mapper.Map<ProductDto>(productEntity);
     }
 
-    public async Task<ProductDto?> Update(Guid id, ProductDto data, CancellationToken cancellationToken)
+    public async Task<ProductDto> Update(Guid id, UpdateProductDto data, CancellationToken cancellationToken)
     {
         var productEntity = await _databaseContext.Products.FindAsync([id], cancellationToken);
         if (productEntity == null)
         {
             _logger.LogInformation($"Product with id {id} not found");
-            return null;
+            throw new Exception("Product not found");
+        }
+
+        var category =
+            await _databaseContext.Categories.FirstOrDefaultAsync(x => x.Id == data.CategoryId, cancellationToken);
+
+        if (category is null)
+        {
+            _logger.LogInformation($"Category with id {data.CategoryId} not found");
+            throw new Exception("Category not found");
         }
 
         productEntity.Name = data.Name;
+        productEntity.Category = category;
         await _databaseContext.SaveChangesAsync(cancellationToken);
 
-        var productDto = new ProductDto { Id = productEntity.Id, Name = productEntity.Name };
-        return productDto;
+        return _mapper.Map<ProductDto>(productEntity);
     }
 
-    public async Task<ProductDto?> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<bool> Delete(Guid id, CancellationToken cancellationToken)
     {
         var productEntity = await _databaseContext.Products.FindAsync([id], cancellationToken);
         if (productEntity == null)
         {
             _logger.LogInformation($"Product with id {id} not found");
-            return null;
+            throw new Exception("Product not found");
         }
 
         _databaseContext.Products.Remove(productEntity);
         await _databaseContext.SaveChangesAsync(cancellationToken);
-
-        var productDto = new ProductDto { Id = productEntity.Id, Name = productEntity.Name };
-        return productDto;
+        return true;
     }
 }
