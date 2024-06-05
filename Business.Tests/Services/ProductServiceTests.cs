@@ -105,6 +105,7 @@ public class ProductServiceTests
         {
             Assert.That(result.Id, Is.Not.EqualTo(Guid.Empty));
             Assert.That(result.Name, Is.EqualTo(createProductDto.Name));
+            Assert.That(result.Category, Is.Not.Null);
             Assert.That(result.Inventory.Product, Is.Null);
             Assert.That(result.Inventory.Quantity, Is.EqualTo(0));
         });

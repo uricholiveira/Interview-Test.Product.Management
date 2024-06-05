@@ -11,6 +11,10 @@ public class ProductDbConfig : IEntityTypeConfiguration<ProductEntity>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).HasMaxLength(50);
 
+        builder.HasOne(x => x.Category)
+            .WithMany()
+            .HasForeignKey(x => x.CategoryId);
+
         builder
             .HasOne(x => x.Inventory)
             .WithOne(y => y.Product)
